@@ -1,0 +1,37 @@
+body {
+  margin: 0;
+  overflow: hidden;
+  background-color: #000;
+  font-family: Arial, sans-serif;
+}
+canvas {
+  display: block;
+}
+.info {
+  position: absolute;
+  top: 10px;
+  width: 100%;
+  text-align: center;
+  color: white;
+  pointer-events: none;
+}
+.controls {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  z-index: 100;
+  pointer-events: auto;
+}
+.toggle-axes {
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  border: 1px solid #555;
+  padding: 8px 15px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s ease;
+}
+.toggle-axes:hover {
+  background: rgba(50, 50, 50, 0.8);
+}
