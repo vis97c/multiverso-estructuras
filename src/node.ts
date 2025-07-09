@@ -1,3 +1,5 @@
+import * as THREE from 'three';
+
 interface NodePosition {
   x: number;
   y: number;
@@ -16,6 +18,8 @@ export class Node {
   value: number;
   /** Posición 3D del nodo */
   position: NodePosition;
+  /** Sprite de la etiqueta del nodo */
+  private label: THREE.Sprite | null = null;
 
   constructor(value: number, position: NodePosition) {
     this.neighbors = [];
@@ -23,8 +27,74 @@ export class Node {
     this.position = position;
   }
 
+  /**
+   * Crea la etiqueta del nodo
+   * @param scene Escena de Three.js donde se agregará la etiqueta
+   * @param loader Cargador de texturas para crear el sprite
+   */
+  createLabel(scene: THREE.Scene, loader: THREE.TextureLoader) {
+    const spriteMaterial = new THREE.SpriteMaterial({
+      map: loader.load(
+        `data:image/svg+xml;charset=utf-8,${this.createLabelSVG()}`
+      ),
+      transparent: true,
+      opacity: 0,
+      depthTest: false
+    });
+
+    this.label = new THREE.Sprite(spriteMaterial);
+    this.label.position.set(this.position.x, this.position.y, this.position.z);
+    this.label.scale.set(0.3, 0.15, 1);
+    this.label.renderOrder = 1; // Asegurar que se renderice por encima de otros objetos
+    scene.add(this.label);
+  }
+
+  /**
+   * Muestra u oculta la etiqueta del nodo
+   * @param visible Indica si la etiqueta debe mostrarse
+   */
+  setLabelVisibility(visible: boolean) {
+    if (this.label) {
+      (this.label.material as THREE.SpriteMaterial).opacity = visible ? 0.8 : 0;
+    }
+  }
+
+  /**
+   * Crea el SVG para la etiqueta del nodo
+   * @returns SVG codificado en URI
+   */
+  private createLabelSVG(): string {
+    return encodeURIComponent(`
+      <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
+        <rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" rx="10" ry="10"/>
+        <text x="50%" y="50%" 
+              font-family="Arial" 
+              font-size="40" 
+              fill="white" 
+              text-anchor="middle" 
+              dominant-baseline="middle">
+          ${this.value}
+        </text>
+      </svg>
+    `);
+  }
+
+  /**
+   * Actualiza la posición de la etiqueta según la cámara
+   * @param camera Cámara actual
+   */
+  updateLabelPosition(camera: THREE.Camera) {
+    if (this.label) {
+      // Hacer que la etiqueta siempre mire a la cámara
+      this.label.position.copy(this.position as THREE.Vector3);
+      this.label.quaternion.copy(camera.quaternion);
+    }
+  }
+
   addNeighbor(node: Node) {
-    this.neighbors.push(node);
+    if (!this.neighbors.includes(node)) {
+      this.neighbors.push(node);
+    }
   }
 
   removeNeighbor(node: Node) {

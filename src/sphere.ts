@@ -1,16 +1,19 @@
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
 import { Node } from "./node";
 import { calculateDistance } from "./utils/render";
 
+// Nodo actualmente resaltado
+let currentHoveredNode: Node | null = null;
+
 // Variables globales
-let scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera,
-  renderer: THREE.WebGLRenderer,
-  controls: OrbitControls,
-  points: THREE.Points,
-  axesHelper: THREE.AxesHelper;
+let scene: THREE.Scene;
+let camera: THREE.PerspectiveCamera;
+let renderer: THREE.WebGLRenderer;
+let controls: OrbitControls;
+let points: THREE.Points;
+let axesHelper: THREE.AxesHelper;
+let nodes: Node[] = []; // Mover la declaración de nodes al ámbito global
 
 // Inicialización
 export function init() {
@@ -80,8 +83,10 @@ export function init() {
     sizeAttenuation: true,
   });
 
-  // Crear un array para almacenar los nodos
-  const nodes: Node[] = [];
+  // Inicializar el array de nodos
+  nodes = [];
+  const textureLoader = new THREE.TextureLoader();
+  const pointSize = 0.1; // Tamaño de los puntos para la detección
 
   // Crear nodos para cada punto con sus posiciones
   for (let i = 0; i < vertices.length / 3; i++) {
@@ -89,8 +94,29 @@ export function init() {
     const y = vertices[i * 3 + 1];
     const z = vertices[i * 3 + 2];
     const node = new Node(i + 1, { x, y, z });
+    node.createLabel(scene, textureLoader);
     nodes.push(node);
   }
+
+  // Crear geometría para la detección de colisiones
+  const pointsGeometry = new THREE.BufferGeometry();
+  pointsGeometry.setAttribute(
+    "position",
+    new THREE.Float32BufferAttribute(vertices, 3)
+  );
+
+  // Material para los puntos (invisible pero detectable por raycaster)
+  const pointsMaterial = new THREE.PointsMaterial({
+    color: 0xffffff,
+    size: pointSize,
+    sizeAttenuation: true,
+    transparent: true,
+    opacity: 0, // Invisible pero aún así detectable
+  });
+
+  // Puntos para la detección
+  points = new THREE.Points(pointsGeometry, pointsMaterial);
+  scene.add(points);
 
   // Conectar cada nodo con sus 6 vecinos más cercanos
   nodes.forEach((currentNode, currentIndex) => {
@@ -125,39 +151,7 @@ export function init() {
   points = new THREE.Points(geometry, pointMaterial);
   scene.add(points);
 
-  // Crear etiquetas para los nodos
-  const loader = new THREE.TextureLoader();
-  const sprite = loader.load(
-    "data:image/svg+xml;charset=utf-8," +
-      encodeURIComponent(
-        '<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">' +
-          '<rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" rx="10" ry="10"/>' +
-          '<text x="50%" y="50%" font-family="Arial" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle">1</text>' +
-          "</svg>"
-      )
-  );
-
-  const spriteMaterial = new THREE.SpriteMaterial({
-    map: sprite,
-    transparent: true,
-    opacity: 0.8,
-  });
-
-  // Crear sprites para mostrar los valores de los nodos
-  nodes.forEach((node) => {
-    const sprite = new THREE.Sprite(spriteMaterial.clone());
-    // Usar la posición almacenada en el nodo
-    sprite.position.set(node.position.x, node.position.y, node.position.z);
-    sprite.scale.set(0.3, 0.15, 1);
-    sprite.material.map = loader.load(
-      "data:image/svg+xml;charset=utf-8," +
-        encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-        <rect width="100%" height="100%" fill="rgba(0,0,0,0.7)" rx="10" ry="10"/>
-        <text x="50%" y="50%" font-family="Arial" font-size="40" fill="white" text-anchor="middle" dominant-baseline="middle">${node.value}</text>
-      </svg>`)
-    );
-    scene.add(sprite);
-  });
+  // Ya no necesitamos el evento de movimiento del ratón
 
   // Crear ejes de referencia
   axesHelper = new THREE.AxesHelper(3);
@@ -173,9 +167,49 @@ export function init() {
   animate();
 }
 
+// Función para encontrar el nodo más cercano a la cámara
+function findClosestNodeToCamera() {
+  let closestNode: Node | null = null;
+  let minDistance = Infinity;
+  const cameraPosition = camera.position;
+
+  nodes.forEach(node => {
+    const dx = node.position.x - cameraPosition.x;
+    const dy = node.position.y - cameraPosition.y;
+    const dz = node.position.z - cameraPosition.z;
+    const distance = dx * dx + dy * dy + dz * dz; // Distancia al cuadrado es suficiente para comparar
+    
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestNode = node;
+    }
+  });
+
+  return closestNode;
+}
+
 // Función de animación
 function animate() {
   requestAnimationFrame(animate);
+
+  // Ocultar la etiqueta actual
+  if (currentHoveredNode) {
+    currentHoveredNode.setLabelVisibility(false);
+    currentHoveredNode = null;
+  }
+
+  // Encontrar y mostrar el nodo más cercano a la cámara
+  const closestNode = findClosestNodeToCamera();
+  if (closestNode) {
+    currentHoveredNode = closestNode;
+    currentHoveredNode.setLabelVisibility(true);
+  }
+
+  // Actualizar posición de las etiquetas para que miren a la cámara
+  nodes.forEach((node) => node.updateLabelPosition(camera));
+
+  // Actualizar controles
+  controls.update();
 
   // Renderizar escena
   renderer.render(scene, camera);
