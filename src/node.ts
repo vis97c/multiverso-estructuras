@@ -1,3 +1,9 @@
+interface NodePosition {
+  x: number;
+  y: number;
+  z: number;
+}
+
 /**
  * Clase que representa un nodo en una red
  *
@@ -8,10 +14,13 @@ export class Node {
   neighbors: Node[];
   /** Valor del nodo */
   value: number;
+  /** Posición 3D del nodo */
+  position: NodePosition;
 
-  constructor(value: number) {
+  constructor(value: number, position: NodePosition) {
     this.neighbors = [];
     this.value = value;
+    this.position = position;
   }
 
   addNeighbor(node: Node) {
