@@ -2,63 +2,14 @@ import "../css/style.css";
 import { Sphere } from "./sphere";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-
-/**
- * Función para manejar el redimensionamiento de la ventana
- */
-function onWindowResize(
-  camera: THREE.PerspectiveCamera,
-  renderer: THREE.WebGLRenderer
-) {
-  camera.aspect = window.innerWidth / window.innerHeight;
-  camera.updateProjectionMatrix();
-  renderer.setSize(window.innerWidth, window.innerHeight);
-}
-
-/**
- * Función principal de animación
- */
-function animate(
-  sphere: Sphere,
-  scene: THREE.Scene,
-  camera: THREE.PerspectiveCamera,
-  renderer: THREE.WebGLRenderer,
-  controls: OrbitControls
-) {
-  requestAnimationFrame(() =>
-    animate(sphere, scene, camera, renderer, controls)
-  );
-
-  // Actualizar nodo resaltado
-  if (sphere.currentHoveredNode) {
-    sphere.currentHoveredNode.setLabelVisibility(false);
-    sphere.currentHoveredNode = null;
-  }
-
-  const closestNode = sphere.findClosestNodeToCamera();
-
-  if (closestNode) {
-    sphere.currentHoveredNode = closestNode;
-    sphere.currentHoveredNode.setLabelVisibility(true);
-  }
-
-  // Actualizar etiquetas
-  sphere.nodes.forEach((node) => node.updateLabelPosition(camera));
-
-  controls.update();
-  renderer.render(scene, camera);
-}
+import { animate, onWindowResize } from "./utils/render";
 
 // Iniciar la aplicación cuando el documento esté listo
 document.addEventListener("DOMContentLoaded", () => {
-  /**
-   * Escena de Three.js
-   */
+  /** Escena de Three.js */
   const scene: THREE.Scene = new THREE.Scene();
 
-  /**
-   * Cámara de perspectiva
-   */
+  /** Cámara de perspectiva */
   const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
     75,
     window.innerWidth / window.innerHeight,
@@ -66,17 +17,13 @@ document.addEventListener("DOMContentLoaded", () => {
     1000
   );
 
-  /**
-   * Renderizador de WebGL
-   */
+  /** Renderizador de WebGL */
   const renderer: THREE.WebGLRenderer = new THREE.WebGLRenderer({
     antialias: true,
     alpha: true,
   });
 
-  /**
-   * Controles de la cámara
-   */
+  /** Controles de la cámara */
   const controls: OrbitControls = new OrbitControls(
     camera,
     renderer.domElement
@@ -90,14 +37,13 @@ document.addEventListener("DOMContentLoaded", () => {
   controls.enableDamping = true;
   controls.dampingFactor = 0.05;
 
-  // Ejes de referencia
-  const axesHelper = new THREE.AxesHelper(3);
+  const axesHelper = new THREE.AxesHelper(3); // Ejes de referencia
 
   axesHelper.visible = false;
   scene.add(axesHelper);
 
-  // Crear esfera con nodos
-  const sphere = new Sphere(scene, camera); // Empezar con 36 nodos
+  // Crear esfera con 36 nodos inicialmente
+  const sphere = new Sphere(scene, camera);
 
   console.log(
     "Primer nodo y sus vecinos:",
