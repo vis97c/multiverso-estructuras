@@ -4,6 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "packageManager": "yarn@4.6.0",
+  "homepage": "https://vis97c.github.io/multiverso-estructuras/",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",

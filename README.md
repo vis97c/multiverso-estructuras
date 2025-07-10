@@ -2,6 +2,10 @@
 
 Los universos (nodos) se agrupan en una esfera. Cada universo se conecta con sus 6 vecinos mas proximos.
 
+[Ver Demo](https://vis97c.github.io/multiverso-estructuras/)
+
+## Estructura de datos
+
 La estructura de datos del multiverso esta definida por una lista enlazada de tipo pila. En esta cada nuevo universo se añade y elimina al final de la pila.
 
 Cada universo (nodo) esta enumerado y distribuido en proximidad a los otros nodos de valor similar, lo que permite recorrer el multiverso a partir de sus valores.
