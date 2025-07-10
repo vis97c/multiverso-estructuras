@@ -55,9 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
    * Escena de Three.js
    */
   const scene: THREE.Scene = new THREE.Scene();
+  
   /**
    * Cámara de perspectiva
-   * Definida con un ángulo de 75 grados y aspecto de la ventana
    */
   const camera: THREE.PerspectiveCamera = new THREE.PerspectiveCamera(
     75,
@@ -65,6 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     0.1,
     1000
   );
+  
   /**
    * Renderizador de WebGL
    */
@@ -72,44 +73,75 @@ document.addEventListener("DOMContentLoaded", () => {
     antialias: true,
     alpha: true,
   });
+  
   /**
    * Controles de la cámara
-   * Permite controlar la cámara con el mouse
    */
   const controls: OrbitControls = new OrbitControls(
     camera,
     renderer.domElement
   );
 
-  camera.position.z = 5; // Definir la posición z de la cámara
-  renderer.setSize(window.innerWidth, window.innerHeight); // Configurar el tamaño del renderer
-  renderer.setPixelRatio(window.devicePixelRatio); // Configurar el ratio de píxeles
-  document.body.appendChild(renderer.domElement); // Agregar el renderer al DOM
-  controls.enableDamping = true; // Habilitar el damping
-  controls.dampingFactor = 0.05; // Definir el factor de damping
+  // Configuración inicial
+  camera.position.z = 5;
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  document.body.appendChild(renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.05;
 
-  const axesHelper = new THREE.AxesHelper(3); // Agregar ejes de referencia
-  const toggleButton = document.getElementById("toggleAxes"); // Botón para ocultar/mostrar ejes
+  // Ejes de referencia
+  const axesHelper = new THREE.AxesHelper(3);
+  scene.add(axesHelper);
 
-  scene.add(axesHelper); // Agregar los ejes a la escena
-  window.addEventListener("resize", () => onWindowResize(camera, renderer)); // Escuchar cambios de tamaño de la ventana
+  // Crear esfera con nodos
+  const sphere = new Sphere(scene, camera, 2, 20); // Empezar con 20 nodos
 
-  if (toggleButton) {
+  // Configurar botones
+  const toggleAxesBtn = document.getElementById('toggleAxes');
+  const addNodeBtn = document.getElementById('addNode');
+  const removeNodeBtn = document.getElementById('removeNode');
+
+  // Función para actualizar el estado del botón de eliminar
+  const updateRemoveButtonState = () => {
+    if (removeNodeBtn) {
+      removeNodeBtn.toggleAttribute('disabled', sphere.nodes.length <= 2);
+    }
+  };
+
+  // Evento para mostrar/ocultar ejes
+  if (toggleAxesBtn) {
     let axesVisible = true;
-    toggleButton.addEventListener("click", () => {
+    toggleAxesBtn.addEventListener('click', () => {
       axesVisible = !axesVisible;
       axesHelper.visible = axesVisible;
-      toggleButton.textContent = axesVisible ? "Ocultar Ejes" : "Mostrar Ejes";
+      toggleAxesBtn.textContent = axesVisible ? 'Ocultar Ejes' : 'Mostrar Ejes';
     });
   }
 
-  const sphere = new Sphere(scene, camera); // Crear la esfera
-  const primerNodo = sphere.nodes[0];
+  // Evento para añadir nodo
+  if (addNodeBtn) {
+    addNodeBtn.addEventListener('click', () => {
+      sphere.addNodes(1);
+      updateRemoveButtonState();
+    });
+  }
 
-  console.log(
-    primerNodo.value,
-    primerNodo.neighbors.map((node) => node.value)
-  );
+  // Evento para eliminar nodo
+  if (removeNodeBtn) {
+    removeNodeBtn.addEventListener('click', () => {
+      if (sphere.nodes.length > 2) {
+        sphere.removeNode(sphere.nodes[sphere.nodes.length - 1]);
+        updateRemoveButtonState();
+      }
+    });
+    // Estado inicial del botón de eliminar
+    updateRemoveButtonState();
+  }
 
-  animate(sphere, scene, camera, renderer, controls); // Iniciar la animación
+  // Redimensionar ventana
+  window.addEventListener('resize', () => onWindowResize(camera, renderer));
+
+  // Iniciar animación
+  animate(sphere, scene, camera, renderer, controls);
 });

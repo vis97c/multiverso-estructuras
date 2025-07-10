@@ -17,21 +17,35 @@ canvas {
 }
 .controls {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 10px;
   z-index: 100;
   pointer-events: auto;
 }
 .toggle-axes {
-  background: rgba(0, 0, 0, 0.7);
+  background-color: rgba(0, 0, 0, 0.7);
   color: white;
-  border: 1px solid #555;
-  padding: 8px 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 8px 16px;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  transition: all 0.3s ease;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  outline: none;
 }
 .toggle-axes:hover {
-  background: rgba(50, 50, 50, 0.8);
+  background-color: rgba(0, 168, 255, 0.8);
+  border-color: rgba(0, 168, 255, 0.9);
+}
+.toggle-axes:active {
+  transform: translateY(1px);
+}
+.toggle-axes:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: rgba(0, 0, 0, 0.5);
+  border-color: rgba(255, 255, 255, 0.1);
 }
