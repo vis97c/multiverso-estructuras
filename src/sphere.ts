@@ -11,6 +11,8 @@ export class Sphere {
   private pointMaterial: THREE.PointsMaterial;
   private geometry: THREE.BufferGeometry;
   private lastTrip: Node[] = [];
+  private tripLines: THREE.Line[] = [];
+  private lines: THREE.Line[] = [];
 
   constructor(
     private scene: THREE.Scene,
@@ -119,6 +121,118 @@ export class Sphere {
   }
 
   /**
+   * Dibuja y anima una linea entre dos nodos
+   * @param initialNode Nodo inicial
+   * @param finalNode Nodo final
+   * @param type Tipo de linea
+   */
+  private async drawLine(
+    initialNode: Node,
+    finalNode: Node,
+    type: "line" | "trip"
+  ) {
+    const firstPoint = new THREE.Vector3(
+      initialNode.position.x,
+      initialNode.position.y,
+      initialNode.position.z
+    );
+    const secondPoint = new THREE.Vector3(
+      finalNode.position.x,
+      finalNode.position.y,
+      finalNode.position.z
+    );
+
+    // Create a line with more segments for smoother animation
+    const points = [];
+    const segments = 50;
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      points.push(new THREE.Vector3().lerpVectors(firstPoint, secondPoint, t));
+    }
+
+    const lineGeometry = new THREE.BufferGeometry().setFromPoints(points);
+
+    // Create custom shader material for the line animation
+    const lineMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        progress: { value: 0 },
+        color: {
+          value:
+            type === "trip"
+              ? new THREE.Color(0x00ff00)
+              : new THREE.Color(0x808080),
+        },
+        opacity: { value: 1.0 },
+      },
+      vertexShader: `
+        uniform float progress;
+        attribute float alpha;
+        varying float vAlpha;
+        
+        void main() {
+          vAlpha = alpha <= progress ? 1.0 : 0.0;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform vec3 color;
+        uniform float opacity;
+        varying float vAlpha;
+        
+        void main() {
+          gl_FragColor = vec4(color, opacity * vAlpha);
+        }
+      `,
+      transparent: true,
+      depthTest: false,
+      linewidth: 2,
+    });
+
+    // Add alpha attribute to control visibility of each segment
+    const alphas = new Float32Array(points.length);
+
+    for (let i = 0; i < alphas.length; i++) {
+      alphas[i] = i / (alphas.length - 1);
+    }
+
+    lineGeometry.setAttribute("alpha", new THREE.BufferAttribute(alphas, 1));
+
+    const line = new THREE.Line(lineGeometry, lineMaterial);
+
+    // Add the line to the appropriate array
+    if (type === "trip") {
+      this.tripLines.push(line);
+    } else {
+      this.lines.push(line);
+    }
+
+    // Animate the line growth and return a promise that resolves when done
+    return new Promise<void>((resolve) => {
+      const duration = 1000; // 1 second
+      const startTime = Date.now();
+
+      const animateLine = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        lineMaterial.uniforms.progress.value = progress;
+
+        if (progress < 1) {
+          requestAnimationFrame(animateLine);
+        } else {
+          resolve();
+        }
+      };
+
+      // Add the line to the scene
+      this.scene.add(line);
+      
+      // Start animation
+      animateLine();
+    });
+  }
+
+  /**
    * Busca y viaja a un nodo vecino
    *
    * La búsqueda se realiza de la siguiente manera:
@@ -132,7 +246,10 @@ export class Sphere {
    * @param trip Array de nodos visitados en el viaje actual
    * @returns El nodo vecino encontrado, null si no se encuentra
    */
-  public searchNode(search: number, trip: Node[] = []): Node | null {
+  public async searchNode(
+    search: number,
+    trip: Node[] = []
+  ): Promise<Node | null> {
     // No buscar si el valor esta fuera del rango
     if (search > this.nodes.length || search < 1) return null;
     // Si el valor es el mismo que el nodo activo, no hacer nada
@@ -157,6 +274,7 @@ export class Sphere {
     if (node) {
       // El valor pertenece a un vecino disponible, viajar
       trip.push(this.activeNode);
+      await this.drawLine(this.activeNode, node, "trip");
       this.activeNode = node;
     } else {
       // El valor no pertenece a un vecino disponible, viajar al vecino menor o mayor
@@ -172,6 +290,7 @@ export class Sphere {
 
         // Viajar al nodo menor
         trip.push(this.activeNode);
+        await this.drawLine(this.activeNode, node, "trip");
         this.activeNode = node;
       } else {
         // Buscar nodos mayores disponibles
@@ -185,10 +304,11 @@ export class Sphere {
 
         // Viajar al nodo mayor
         trip.push(this.activeNode);
+        await this.drawLine(this.activeNode, node, "trip");
         this.activeNode = node;
       }
 
-      node = this.searchNode(search, trip);
+      node = await this.searchNode(search, trip);
     }
 
     // Si se encuentra el nodo, guardar el viaje
@@ -199,6 +319,19 @@ export class Sphere {
         "Viaje:",
         trip.map(({ value }) => value)
       );
+
+      // Limpiar todas las lineas anteriores
+      this.lines.forEach((line) => this.scene.remove(line));
+      this.lines = [];
+
+      // Convertir tripLines en lines
+      this.tripLines.forEach((line) => {
+        this.lines.push(line);
+        // Actualizar material de la linea a gris
+        const lineMaterial = line.material as THREE.ShaderMaterial;
+        lineMaterial.uniforms.color.value.set(0x808080);
+      });
+      this.tripLines = [];
     }
 
     return node;

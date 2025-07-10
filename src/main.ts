@@ -56,6 +56,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const addNodeBtn = document.getElementById("addNode");
   const removeNodeBtn = document.getElementById("removeNode");
   const searchNodeBtn = document.getElementById("searchNode");
+  /** Bloquear interacciones mientras se realiza una operación */
+  let blockInteractions = false;
 
   // Función para actualizar el estado del botón de eliminar y el input
   const updateControls = () => {
@@ -102,6 +104,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Evento para mostrar/ocultar ejes
   if (toggleAxesBtn) {
     toggleAxesBtn.addEventListener("click", () => {
+      if (blockInteractions) return;
+
       axesHelper.visible = !axesHelper.visible;
       toggleAxesBtn.textContent = axesHelper.visible
         ? "Ocultar Ejes"
@@ -112,6 +116,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Evento para añadir nodos
   if (addNodeBtn) {
     addNodeBtn.addEventListener("click", () => {
+      if (blockInteractions) return;
+
       const addNodeCountInput = document.getElementById(
         "addNodeCount"
       ) as HTMLInputElement;
@@ -128,6 +134,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Evento para eliminar nodos
   if (removeNodeBtn) {
     removeNodeBtn.addEventListener("click", () => {
+      if (blockInteractions) return;
+
       const removeNodeCountInput = document.getElementById(
         "removeNodeCount"
       ) as HTMLInputElement;
@@ -156,23 +164,27 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Evento para buscar nodos
   if (searchNodeBtn) {
-    searchNodeBtn.addEventListener("click", () => {
+    searchNodeBtn.addEventListener("click", async () => {
+      if (blockInteractions) return;
+
+      blockInteractions = true;
+
       const searchNodeInput = document.getElementById(
         "searchNodeValue"
       ) as HTMLInputElement;
       const value = parseInt(searchNodeInput?.value) || 1;
 
       if (value < 1 || value > sphere.nodes.length) {
-        return alert("El valor debe estar entre 1 y " + sphere.nodes.length);
+        alert("El valor debe estar entre 1 y " + sphere.nodes.length);
+      } else if (sphere.activeNode.value === value) {
+        alert("Ya estas en el nodo, busca otro");
+      } else {
+        const node = await sphere.searchNode(value);
+
+        if (!node) alert("No puedes viajar a este nodo");
       }
 
-      if (sphere.activeNode.value === value) {
-        return alert("Ya estas en el nodo, busca otro");
-      }
-
-      const node = sphere.searchNode(value);
-
-      if (!node) return alert("No puedes viajar a este nodo");
+      blockInteractions = false;
     });
   }
 
