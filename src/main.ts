@@ -92,6 +92,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Ejes de referencia
   const axesHelper = new THREE.AxesHelper(3);
+
+  axesHelper.visible = false;
   scene.add(axesHelper);
 
   // Crear esfera con nodos
@@ -107,41 +109,94 @@ document.addEventListener("DOMContentLoaded", () => {
   const addNodeBtn = document.getElementById("addNode");
   const removeNodeBtn = document.getElementById("removeNode");
 
-  // Función para actualizar el estado del botón de eliminar
-  const updateRemoveButtonState = () => {
+  // Función para actualizar el estado del botón de eliminar y el input
+  const updateRemoveControls = () => {
+    const removeNodeCountInput = document.getElementById(
+      "removeNodeCount"
+    ) as HTMLInputElement;
+    const maxRemovable = Math.max(0, sphere.nodes.length - 2);
+    const canRemove = maxRemovable > 0;
+
+    // Actualizar el estado del botón y el input
     if (removeNodeBtn) {
-      removeNodeBtn.toggleAttribute("disabled", sphere.nodes.length <= 2);
+      removeNodeBtn.toggleAttribute("disabled", !canRemove);
+    }
+
+    if (removeNodeCountInput) {
+      // Deshabilitar el input si no se pueden eliminar nodos
+      removeNodeCountInput.disabled = !canRemove;
+
+      if (canRemove) {
+        // Si se pueden eliminar nodos, actualizar el valor máximo
+        removeNodeCountInput.max = maxRemovable.toString();
+
+        // Ajustar el valor actual si es necesario
+        const currentValue = parseInt(removeNodeCountInput.value) || 1;
+        if (currentValue > maxRemovable) {
+          removeNodeCountInput.value = maxRemovable.toString();
+        } else if (currentValue < 1) {
+          removeNodeCountInput.value = "1";
+        }
+      } else {
+        // Si no se pueden eliminar nodos, establecer valor a 0
+        removeNodeCountInput.value = "0";
+      }
     }
   };
 
   // Evento para mostrar/ocultar ejes
   if (toggleAxesBtn) {
-    let axesVisible = true;
     toggleAxesBtn.addEventListener("click", () => {
-      axesVisible = !axesVisible;
-      axesHelper.visible = axesVisible;
-      toggleAxesBtn.textContent = axesVisible ? "Ocultar Ejes" : "Mostrar Ejes";
+      axesHelper.visible = !axesHelper.visible;
+      toggleAxesBtn.textContent = axesHelper.visible
+        ? "Ocultar Ejes"
+        : "Mostrar Ejes";
     });
   }
 
-  // Evento para añadir nodo
+  // Evento para añadir nodos
   if (addNodeBtn) {
     addNodeBtn.addEventListener("click", () => {
-      sphere.addNodes(1);
-      updateRemoveButtonState();
+      const addNodeCountInput = document.getElementById(
+        "addNodeCount"
+      ) as HTMLInputElement;
+      const count = Math.max(1, parseInt(addNodeCountInput?.value) || 1);
+
+      // Asegurarse de que el valor no sea negativo
+      addNodeCountInput.value = Math.max(1, count).toString();
+
+      sphere.addNodes(count);
+      updateRemoveControls();
     });
   }
 
-  // Evento para eliminar nodo
+  // Evento para eliminar nodos
   if (removeNodeBtn) {
     removeNodeBtn.addEventListener("click", () => {
-      if (sphere.nodes.length > 2) {
+      const removeNodeCountInput = document.getElementById(
+        "removeNodeCount"
+      ) as HTMLInputElement;
+      const maxRemovable = Math.max(0, sphere.nodes.length - 2);
+
+      if (maxRemovable <= 0) return;
+
+      // Obtener la cantidad a eliminar, asegurando que esté dentro de los límites
+      let count = Math.min(
+        maxRemovable,
+        parseInt(removeNodeCountInput?.value) || 1
+      );
+      count = Math.max(1, count); // Asegurar que sea al menos 1
+
+      // Eliminar los nodos
+      for (let i = 0; i < count && sphere.nodes.length > 2; i++) {
         sphere.removeNode(sphere.nodes[sphere.nodes.length - 1]);
-        updateRemoveButtonState();
       }
+
+      updateRemoveControls();
     });
-    // Estado inicial del botón de eliminar
-    updateRemoveButtonState();
+
+    // Estado inicial de los controles de eliminación
+    updateRemoveControls();
   }
 
   // Redimensionar ventana

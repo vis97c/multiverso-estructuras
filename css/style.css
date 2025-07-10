@@ -25,7 +25,7 @@ canvas {
   z-index: 100;
   pointer-events: auto;
 }
-.toggle-axes {
+.control-btn {
   background-color: rgba(0, 0, 0, 0.7);
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.2);
@@ -35,17 +35,52 @@ canvas {
   font-size: 0.9rem;
   transition: all 0.2s ease;
   outline: none;
+  white-space: nowrap;
 }
-.toggle-axes:hover {
+
+.control-btn:hover:not(:disabled) {
   background-color: rgba(0, 168, 255, 0.8);
   border-color: rgba(0, 168, 255, 0.9);
 }
-.toggle-axes:active {
+
+.control-btn:active:not(:disabled) {
   transform: translateY(1px);
 }
-.toggle-axes:disabled {
+
+.control-btn:disabled,
+.node-count-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: rgba(0, 0, 0, 0.5);
   border-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Estilos para los controles de nodos */
+.node-control {
+  display: flex;
+  gap: 5px;
+  align-items: center;
+}
+
+.node-count-input {
+  width: 50px;
+  padding: 8px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: rgba(0, 0, 0, 0.7);
+  color: white;
+  text-align: center;
+  font-size: 0.9rem;
+  outline: none;
+}
+
+.node-count-input::-webkit-inner-spin-button,
+.node-count-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.node-count-input:focus {
+  border-color: rgba(0, 168, 255, 0.9);
+  box-shadow: 0 0 0 1px rgba(0, 168, 255, 0.5);
 }

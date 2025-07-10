@@ -13,11 +13,30 @@
         <p>Arrastra para rotar | Rueda del mouse para hacer zoom</p>
       </div>
       <div class="controls">
-        <button id="toggleAxes" class="control-btn">Ocultar Ejes</button>
-        <button id="addNode" class="control-btn">Añadir Nodo</button>
-        <button id="removeNode" class="control-btn" disabled>
-          Eliminar Nodo
-        </button>
+        <button id="toggleAxes" class="control-btn">Mostrar Ejes</button>
+        <div class="node-control">
+          <input
+            type="number"
+            id="addNodeCount"
+            min="1"
+            value="1"
+            class="node-count-input"
+          />
+          <button id="addNode" class="control-btn">Añadir Nodo(s)</button>
+        </div>
+        <div class="node-control">
+          <input
+            type="number"
+            id="removeNodeCount"
+            min="1"
+            max="1"
+            value="1"
+            class="node-count-input"
+          />
+          <button id="removeNode" class="control-btn" disabled>
+            Eliminar Nodo(s)
+          </button>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.ts"></script>
