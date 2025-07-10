@@ -6,9 +6,11 @@ export class Sphere {
   private points!: THREE.Points;
   public nodes: Node[] = [];
   public currentHoveredNode: Node | null = null;
+  private _activeNode!: Node;
   private textureLoader: THREE.TextureLoader;
   private pointMaterial: THREE.PointsMaterial;
   private geometry: THREE.BufferGeometry;
+  private lastTrip: Node[] = [];
 
   constructor(
     private scene: THREE.Scene,
@@ -38,6 +40,7 @@ export class Sphere {
     this.connectNearestNeighbors();
 
     console.log(
+      "Vecinos del ultimo nodo:",
       this.nodes[this.nodes.length - 1].neighbors.map((node) => node.value)
     );
 
@@ -90,6 +93,114 @@ export class Sphere {
 
     node.createLabel(this.scene, this.textureLoader);
     this.nodes.push(node);
+
+    // Establecer el primer nodo como activo por defecto
+    if (this.nodes.length === 1) this.activeNode = node;
+
+    return node;
+  }
+
+  /**
+   * Obtiene o establece el nodo activo actual
+   */
+  get activeNode(): Node {
+    return this._activeNode;
+  }
+
+  set activeNode(node: Node) {
+    if (this._activeNode === node) return;
+
+    // Desactivar el nodo activo actual
+    if (this._activeNode) this._activeNode.active = false;
+
+    // Establecer el nuevo nodo activo
+    this._activeNode = node;
+    this._activeNode.active = true;
+  }
+
+  /**
+   * Busca y viaja a un nodo vecino
+   *
+   * La búsqueda se realiza de la siguiente manera:
+   *
+   * 1. Si el valor es el mismo que el nodo activo, no hacer nada
+   * 2. Si el valor pertenece a un vecino, viajar al vecino
+   * 3. Si no pertenece a un vecino pero es menor que el nodo activo, buscar el vecino menor y viajar
+   * 4. Si no pertenece a un vecino pero es mayor que el nodo activo, buscar el vecino mayor y viajar
+   *
+   * @param search Valor del nodo vecino a buscar
+   * @param trip Array de nodos visitados en el viaje actual
+   * @returns El nodo vecino encontrado, null si no se encuentra
+   */
+  public searchNode(search: number, trip: Node[] = []): Node | null {
+    // No buscar si el valor esta fuera del rango
+    if (search > this.nodes.length || search < 1) return null;
+    // Si el valor es el mismo que el nodo activo, no hacer nada
+    if (this.activeNode.value === search) return this.activeNode;
+
+    /** Obtener los valores del ultimo viaje */
+    const fullTrip = [...this.lastTrip, ...trip];
+    const lastTripValues = fullTrip.map(({ value }) => value);
+    /** Vecinos disponibles para viajar */
+    const availableNeighbors = this.activeNode.neighbors.filter(({ value }) => {
+      return !lastTripValues.includes(value);
+    });
+
+    // No hay vecinos disponibles, imposible viajar
+    if (availableNeighbors.length === 0) return null;
+
+    let node: Node | null = null;
+
+    // Buscar entre los vecinos
+    node = availableNeighbors.find(({ value }) => value === search) || null;
+
+    if (node) {
+      // El valor pertenece a un vecino disponible, viajar
+      trip.push(this.activeNode);
+      this.activeNode = node;
+    } else {
+      // El valor no pertenece a un vecino disponible, viajar al vecino menor o mayor
+      if (this.activeNode.value > search) {
+        // Buscar nodos menores disponibles
+        node = availableNeighbors[0];
+
+        for (let index = 1; index < availableNeighbors.length; index++) {
+          const candidate = availableNeighbors[index];
+
+          if (candidate.value < node.value) node = candidate;
+        }
+
+        // Viajar al nodo menor
+        trip.push(this.activeNode);
+        this.activeNode = node;
+      } else {
+        // Buscar nodos mayores disponibles
+        node = availableNeighbors[0];
+
+        for (let index = 1; index < availableNeighbors.length; index++) {
+          const candidate = availableNeighbors[index];
+
+          if (candidate.value > node.value) node = candidate;
+        }
+
+        // Viajar al nodo mayor
+        trip.push(this.activeNode);
+        this.activeNode = node;
+      }
+
+      node = this.searchNode(search, trip);
+    }
+
+    // Si se encuentra el nodo, guardar el viaje
+    if (node?.value === search && trip !== this.lastTrip) {
+      this.lastTrip = trip;
+
+      console.log(
+        "Viaje:",
+        trip.map(({ value }) => value)
+      );
+    }
+
     return node;
   }
 

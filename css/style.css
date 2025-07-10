@@ -48,7 +48,7 @@ canvas {
 }
 
 .control-btn:disabled,
-.node-count-input:disabled {
+.node-input:disabled {
   opacity: 0.5;
   cursor: not-allowed;
   background-color: rgba(0, 0, 0, 0.5);
@@ -58,11 +58,11 @@ canvas {
 /* Estilos para los controles de nodos */
 .node-control {
   display: flex;
-  gap: 5px;
+  gap: 3px;
   align-items: center;
 }
 
-.node-count-input {
+.node-input {
   width: 50px;
   padding: 8px;
   border-radius: 4px;
@@ -74,13 +74,13 @@ canvas {
   outline: none;
 }
 
-.node-count-input::-webkit-inner-spin-button,
-.node-count-input::-webkit-outer-spin-button {
+.node-input::-webkit-inner-spin-button,
+.node-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
   margin: 0;
 }
 
-.node-count-input:focus {
+.node-input:focus {
   border-color: rgba(0, 168, 255, 0.9);
   box-shadow: 0 0 0 1px rgba(0, 168, 255, 0.5);
 }

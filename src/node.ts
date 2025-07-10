@@ -1,4 +1,4 @@
-import * as THREE from 'three';
+import * as THREE from "three";
 
 interface NodePosition {
   x: number;
@@ -20,6 +20,10 @@ export class Node {
   position: NodePosition;
   /** Sprite de la etiqueta del nodo */
   private label: THREE.Sprite | null = null;
+  /** Indica si el nodo está activo */
+  private _active: boolean = false;
+  /** Material del punto 3D */
+  private point: THREE.Points | null = null;
 
   constructor(value: number, position: NodePosition) {
     this.neighbors = [];
@@ -39,8 +43,25 @@ export class Node {
       ),
       transparent: true,
       opacity: 0,
-      depthTest: false
+      depthTest: false,
     });
+
+    // Crear el punto 3D para el nodo
+    const geometry = new THREE.BufferGeometry();
+    const vertices = new Float32Array([0, 0, 0]);
+    geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
+
+    const material = new THREE.PointsMaterial({
+      color: this.active ? 0xff0000 : 0x00a8ff,
+      size: 0.1,
+      transparent: true,
+      opacity: 0.9,
+      sizeAttenuation: true,
+    });
+
+    this.point = new THREE.Points(geometry, material);
+    this.point.position.set(this.position.x, this.position.y, this.position.z);
+    scene.add(this.point);
 
     this.label = new THREE.Sprite(spriteMaterial);
     this.label.position.set(this.position.x, this.position.y, this.position.z);
@@ -56,6 +77,23 @@ export class Node {
   setLabelVisibility(visible: boolean) {
     if (this.label) {
       (this.label.material as THREE.SpriteMaterial).opacity = visible ? 0.8 : 0;
+    }
+  }
+
+  /**
+   * Obtiene o establece si el nodo está activo
+   */
+  get active(): boolean {
+    return this._active;
+  }
+
+  set active(value: boolean) {
+    if (this._active !== value) {
+      this._active = value;
+      if (this.point) {
+        const material = this.point.material as THREE.PointsMaterial;
+        material.color.set(value ? 0xff0000 : 0x00a8ff);
+      }
     }
   }
 
@@ -88,6 +126,11 @@ export class Node {
       // Hacer que la etiqueta siempre mire a la cámara
       this.label.position.copy(this.position as THREE.Vector3);
       this.label.quaternion.copy(camera.quaternion);
+    }
+
+    // Actualizar posición del punto 3D
+    if (this.point) {
+      this.point.position.copy(this.position as THREE.Vector3);
     }
   }
 

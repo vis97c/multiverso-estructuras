@@ -100,6 +100,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const sphere = new Sphere(scene, camera); // Empezar con 36 nodos
 
   console.log(
+    "Primer nodo y sus vecinos:",
     sphere.nodes[0].value,
     sphere.nodes[0].neighbors.map((node) => node.value)
   );
@@ -108,9 +109,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const toggleAxesBtn = document.getElementById("toggleAxes");
   const addNodeBtn = document.getElementById("addNode");
   const removeNodeBtn = document.getElementById("removeNode");
+  const searchNodeBtn = document.getElementById("searchNode");
 
   // Función para actualizar el estado del botón de eliminar y el input
-  const updateRemoveControls = () => {
+  const updateControls = () => {
+    const searchNodeInput = document.getElementById(
+      "searchNodeValue"
+    ) as HTMLInputElement;
     const removeNodeCountInput = document.getElementById(
       "removeNodeCount"
     ) as HTMLInputElement;
@@ -142,6 +147,10 @@ document.addEventListener("DOMContentLoaded", () => {
         removeNodeCountInput.value = "0";
       }
     }
+
+    if (searchNodeInput) {
+      searchNodeInput.max = sphere.nodes.length.toString();
+    }
   };
 
   // Evento para mostrar/ocultar ejes
@@ -166,7 +175,7 @@ document.addEventListener("DOMContentLoaded", () => {
       addNodeCountInput.value = Math.max(1, count).toString();
 
       sphere.addNodes(count);
-      updateRemoveControls();
+      updateControls();
     });
   }
 
@@ -192,11 +201,33 @@ document.addEventListener("DOMContentLoaded", () => {
         sphere.removeNode(sphere.nodes[sphere.nodes.length - 1]);
       }
 
-      updateRemoveControls();
+      updateControls();
     });
 
     // Estado inicial de los controles de eliminación
-    updateRemoveControls();
+    updateControls();
+  }
+
+  // Evento para buscar nodos
+  if (searchNodeBtn) {
+    searchNodeBtn.addEventListener("click", () => {
+      const searchNodeInput = document.getElementById(
+        "searchNodeValue"
+      ) as HTMLInputElement;
+      const value = parseInt(searchNodeInput?.value) || 1;
+
+      if (value < 1 || value > sphere.nodes.length) {
+        return alert("El valor debe estar entre 1 y " + sphere.nodes.length);
+      }
+
+      if (sphere.activeNode.value === value) {
+        return alert("Ya estas en el nodo, busca otro");
+      }
+
+      const node = sphere.searchNode(value);
+
+      if (!node) return alert("No puedes viajar a este nodo");
+    });
   }
 
   // Redimensionar ventana
