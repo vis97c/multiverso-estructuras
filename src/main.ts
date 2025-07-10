@@ -55,7 +55,7 @@ document.addEventListener("DOMContentLoaded", () => {
    * Escena de Three.js
    */
   const scene: THREE.Scene = new THREE.Scene();
-  
+
   /**
    * Cámara de perspectiva
    */
@@ -65,7 +65,7 @@ document.addEventListener("DOMContentLoaded", () => {
     0.1,
     1000
   );
-  
+
   /**
    * Renderizador de WebGL
    */
@@ -73,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     antialias: true,
     alpha: true,
   });
-  
+
   /**
    * Controles de la cámara
    */
@@ -95,33 +95,38 @@ document.addEventListener("DOMContentLoaded", () => {
   scene.add(axesHelper);
 
   // Crear esfera con nodos
-  const sphere = new Sphere(scene, camera, 2, 20); // Empezar con 20 nodos
+  const sphere = new Sphere(scene, camera); // Empezar con 36 nodos
+
+  console.log(
+    sphere.nodes[0].value,
+    sphere.nodes[0].neighbors.map((node) => node.value)
+  );
 
   // Configurar botones
-  const toggleAxesBtn = document.getElementById('toggleAxes');
-  const addNodeBtn = document.getElementById('addNode');
-  const removeNodeBtn = document.getElementById('removeNode');
+  const toggleAxesBtn = document.getElementById("toggleAxes");
+  const addNodeBtn = document.getElementById("addNode");
+  const removeNodeBtn = document.getElementById("removeNode");
 
   // Función para actualizar el estado del botón de eliminar
   const updateRemoveButtonState = () => {
     if (removeNodeBtn) {
-      removeNodeBtn.toggleAttribute('disabled', sphere.nodes.length <= 2);
+      removeNodeBtn.toggleAttribute("disabled", sphere.nodes.length <= 2);
     }
   };
 
   // Evento para mostrar/ocultar ejes
   if (toggleAxesBtn) {
     let axesVisible = true;
-    toggleAxesBtn.addEventListener('click', () => {
+    toggleAxesBtn.addEventListener("click", () => {
       axesVisible = !axesVisible;
       axesHelper.visible = axesVisible;
-      toggleAxesBtn.textContent = axesVisible ? 'Ocultar Ejes' : 'Mostrar Ejes';
+      toggleAxesBtn.textContent = axesVisible ? "Ocultar Ejes" : "Mostrar Ejes";
     });
   }
 
   // Evento para añadir nodo
   if (addNodeBtn) {
-    addNodeBtn.addEventListener('click', () => {
+    addNodeBtn.addEventListener("click", () => {
       sphere.addNodes(1);
       updateRemoveButtonState();
     });
@@ -129,7 +134,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Evento para eliminar nodo
   if (removeNodeBtn) {
-    removeNodeBtn.addEventListener('click', () => {
+    removeNodeBtn.addEventListener("click", () => {
       if (sphere.nodes.length > 2) {
         sphere.removeNode(sphere.nodes[sphere.nodes.length - 1]);
         updateRemoveButtonState();
@@ -140,7 +145,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Redimensionar ventana
-  window.addEventListener('resize', () => onWindowResize(camera, renderer));
+  window.addEventListener("resize", () => onWindowResize(camera, renderer));
 
   // Iniciar animación
   animate(sphere, scene, camera, renderer, controls);

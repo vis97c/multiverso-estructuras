@@ -14,7 +14,7 @@ export class Sphere {
     private scene: THREE.Scene,
     private camera: THREE.PerspectiveCamera,
     private radius: number = 2,
-    private totalNodes: number = 50 // Cantidad total de nodos deseada
+    private totalNodes: number = 36 // Cantidad total de nodos deseada
   ) {
     this.textureLoader = new THREE.TextureLoader();
     this.geometry = new THREE.BufferGeometry();
@@ -36,18 +36,19 @@ export class Sphere {
     this.clearNodes();
     this.distributeNodesOnSphere();
     this.connectNearestNeighbors();
+
+    console.log(
+      this.nodes[this.nodes.length - 1].neighbors.map((node) => node.value)
+    );
+
     this.updatePointsGeometry();
   }
 
   private distributeNodesOnSphere() {
     // Asegurarse de que hay al menos 2 nodos (polos)
     const nodeCount = Math.max(2, this.totalNodes);
-
-    // Añadir nodo en el polo norte
-    this.addNode(new THREE.Vector3(0, this.radius, 0));
-
     // Distribuir los nodos restantes en la esfera
-    const points = this.fibonacciSphere(nodeCount - 2); // -2 porque ya añadimos los polos
+    const points = this.fibonacciSphere(nodeCount);
 
     // Añadir los nodos intermedios
     points.forEach((point) => {
@@ -55,9 +56,6 @@ export class Sphere {
       const scaledPoint = point.multiplyScalar(this.radius);
       this.addNode(scaledPoint);
     });
-
-    // Añadir nodo en el polo sur
-    this.addNode(new THREE.Vector3(0, -this.radius, 0));
   }
 
   /**
@@ -162,23 +160,23 @@ export class Sphere {
       // Limpiar vecinos existentes
       currentNode.neighbors = [];
 
-      // Encontrar vecinos más cercanos
-      const nodesWithDistances = this.nodes
-        .filter((_, index) => index !== currentIndex)
+      // Encontrar los 6 vecinos más cercanos
+      const nearestNeighbors = this.nodes
+        .filter((_, index) => index !== currentIndex) // Excluir el nodo actual
         .map((node) => ({
           node,
           distance: calculateDistance(currentNode, node),
         }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 6); // Conectar con los 6 vecinos más cercanos
+        .sort((a, b) => a.distance - b.distance) // Ordenar por distancia
+        .slice(0, 6); // Tomar los 6 más cercanos
 
-      // Establecer nuevas conexiones
-      nodesWithDistances.forEach(({ node }) => {
+      // Establecer conexiones bidireccionales
+      nearestNeighbors.forEach(({ node }) => {
         if (!currentNode.neighbors.includes(node)) {
           currentNode.addNeighbor(node);
-          if (!node.neighbors.includes(currentNode)) {
-            node.addNeighbor(currentNode);
-          }
+        }
+        if (!node.neighbors.includes(currentNode)) {
+          node.addNeighbor(currentNode);
         }
       });
     });
