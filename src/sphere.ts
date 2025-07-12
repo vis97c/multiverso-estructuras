@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { Node } from "./node";
-import { calculateDistance } from "./utils/render";
+import { calculateDistance, disposeLine } from "./utils/render";
 
 export class Sphere {
   private points!: THREE.Points;
@@ -29,10 +29,8 @@ export class Sphere {
       opacity: 0.9,
       sizeAttenuation: true,
     });
-
     this.points = new THREE.Points(this.geometry, this.pointMaterial);
     this.scene.add(this.points);
-
     this.initializeNodes();
   }
 
@@ -59,6 +57,7 @@ export class Sphere {
     points.forEach((point) => {
       // Escalar al radio de la esfera
       const scaledPoint = point.multiplyScalar(this.radius);
+
       this.addNode(scaledPoint);
     });
   }
@@ -75,7 +74,6 @@ export class Sphere {
     for (let i = 0; i < samples; i++) {
       const y = 1 - (i / (samples - 1)) * 2; // y va de 1 a -1
       const radius = Math.sqrt(1 - y * y); // radio en x-z
-
       const theta = phi * i; // Ángulo áureo incrementado
       const x = Math.cos(theta) * radius;
       const z = Math.sin(theta) * radius;
@@ -145,6 +143,7 @@ export class Sphere {
     // Create a line with more segments for smoother animation
     const points = [];
     const segments = 50;
+
     for (let i = 0; i <= segments; i++) {
       const t = i / segments;
       points.push(new THREE.Vector3().lerpVectors(firstPoint, secondPoint, t));
@@ -200,11 +199,8 @@ export class Sphere {
     const line = new THREE.Line(lineGeometry, lineMaterial);
 
     // Add the line to the appropriate array
-    if (type === "trip") {
-      this.tripLines.push(line);
-    } else {
-      this.lines.push(line);
-    }
+    if (type === "trip") this.tripLines.push(line);
+    else this.lines.push(line);
 
     // Animate the line growth and return a promise that resolves when done
     return new Promise<void>((resolve) => {
@@ -217,16 +213,13 @@ export class Sphere {
 
         lineMaterial.uniforms.progress.value = progress;
 
-        if (progress < 1) {
-          requestAnimationFrame(animateLine);
-        } else {
-          resolve();
-        }
+        if (progress < 1) requestAnimationFrame(animateLine);
+        else resolve();
       };
 
       // Add the line to the scene
       this.scene.add(line);
-      
+
       // Start animation
       animateLine();
     });
@@ -239,8 +232,7 @@ export class Sphere {
    *
    * 1. Si el valor es el mismo que el nodo activo, no hacer nada
    * 2. Si el valor pertenece a un vecino, viajar al vecino
-   * 3. Si no pertenece a un vecino pero es menor que el nodo activo, buscar el vecino menor y viajar
-   * 4. Si no pertenece a un vecino pero es mayor que el nodo activo, buscar el vecino mayor y viajar
+   * 3. Si no pertenece a un vecino buscar el vecino mas viable y viajar
    *
    * @param search Valor del nodo vecino a buscar
    * @param trip Array de nodos visitados en el viaje actual
@@ -254,6 +246,9 @@ export class Sphere {
     if (search > this.nodes.length || search < 1) return null;
     // Si el valor es el mismo que el nodo activo, no hacer nada
     if (this.activeNode.value === search) return this.activeNode;
+
+    // Si el valor ya se ha visitado, no hacer nada
+    if (this.lastTrip.some(({ value }) => value === search)) return null;
 
     /** Obtener los valores del ultimo viaje */
     const fullTrip = [...this.lastTrip, ...trip];
@@ -277,36 +272,35 @@ export class Sphere {
       await this.drawLine(this.activeNode, node, "trip");
       this.activeNode = node;
     } else {
-      // El valor no pertenece a un vecino disponible, viajar al vecino menor o mayor
+      // El valor no pertenece a un vecino disponible, viajar al vecino mas probable
+      node = availableNeighbors[0];
+
       if (this.activeNode.value > search) {
         // Buscar nodos menores disponibles
-        node = availableNeighbors[0];
 
         for (let index = 1; index < availableNeighbors.length; index++) {
           const candidate = availableNeighbors[index];
 
-          if (candidate.value < node.value) node = candidate;
+          if (candidate.value < node.value && candidate.value > search) {
+            node = candidate;
+          }
         }
-
-        // Viajar al nodo menor
-        trip.push(this.activeNode);
-        await this.drawLine(this.activeNode, node, "trip");
-        this.activeNode = node;
       } else {
         // Buscar nodos mayores disponibles
-        node = availableNeighbors[0];
 
         for (let index = 1; index < availableNeighbors.length; index++) {
           const candidate = availableNeighbors[index];
 
-          if (candidate.value > node.value) node = candidate;
+          if (candidate.value > node.value && candidate.value < search) {
+            node = candidate;
+          }
         }
-
-        // Viajar al nodo mayor
-        trip.push(this.activeNode);
-        await this.drawLine(this.activeNode, node, "trip");
-        this.activeNode = node;
       }
+
+      // Viajar al vecino mas cercano
+      trip.push(this.activeNode);
+      await this.drawLine(this.activeNode, node, "trip");
+      this.activeNode = node;
 
       node = await this.searchNode(search, trip);
     }
@@ -321,14 +315,16 @@ export class Sphere {
       );
 
       // Limpiar todas las lineas anteriores
-      this.lines.forEach((line) => this.scene.remove(line));
+      this.lines.forEach((line) => disposeLine(this.scene, line));
       this.lines = [];
 
       // Convertir tripLines en lines
       this.tripLines.forEach((line) => {
         this.lines.push(line);
+
         // Actualizar material de la linea a gris
         const lineMaterial = line.material as THREE.ShaderMaterial;
+
         lineMaterial.uniforms.color.value.set(0x808080);
       });
       this.tripLines = [];
@@ -349,6 +345,7 @@ export class Sphere {
       // Eliminar conexiones con otros nodos
       this.nodes.forEach((n) => {
         const neighborIndex = n.neighbors.indexOf(node);
+
         if (neighborIndex > -1) {
           n.neighbors.splice(neighborIndex, 1);
         }
@@ -377,10 +374,27 @@ export class Sphere {
       if (node["label"] && node["label"].parent) {
         node["label"].parent.remove(node["label"]);
       }
+      if (node["point"] && node["point"].parent) {
+        node["point"].parent.remove(node["point"]);
+      }
     });
+
+    // Limpiar geometría de puntos
+    this.geometry.dispose();
+    this.geometry = new THREE.BufferGeometry();
+    this.points.geometry = this.geometry;
 
     // Limpiar lista de nodos
     this.nodes = [];
+    this.lastTrip = [];
+
+    // Limpiar líneas de viaje
+    this.tripLines.forEach((line) => disposeLine(this.scene, line));
+    this.tripLines = [];
+
+    // Limpiar otras líneas
+    this.lines.forEach((line) => disposeLine(this.scene, line));
+    this.lines = [];
   }
 
   private updatePointsGeometry() {
@@ -414,15 +428,8 @@ export class Sphere {
         .sort((a, b) => a.distance - b.distance) // Ordenar por distancia
         .slice(0, 6); // Tomar los 6 más cercanos
 
-      // Establecer conexiones bidireccionales
-      nearestNeighbors.forEach(({ node }) => {
-        if (!currentNode.neighbors.includes(node)) {
-          currentNode.addNeighbor(node);
-        }
-        if (!node.neighbors.includes(currentNode)) {
-          node.addNeighbor(currentNode);
-        }
-      });
+      // Establecer conexion unidireccional
+      nearestNeighbors.forEach(({ node }) => currentNode.addNeighbor(node));
     });
   }
 
@@ -446,8 +453,6 @@ export class Sphere {
   }
 
   public update() {
-    this.nodes.forEach((node) => {
-      node.updateLabelPosition(this.camera);
-    });
+    this.nodes.forEach((node) => node.updateLabelPosition(this.camera));
   }
 }

@@ -9,6 +9,7 @@ export function calculateDistance(nodeA: Node, nodeB: Node): number {
   const dx = nodeA.position.x - nodeB.position.x;
   const dy = nodeA.position.y - nodeB.position.y;
   const dz = nodeA.position.z - nodeB.position.z;
+
   return Math.sqrt(dx * dx + dy * dy + dz * dz);
 }
 
@@ -27,7 +28,7 @@ export function onWindowResize(
 /**
  * Función principal de animación
  */
-export function animate(
+export function animateSphere(
   sphere: Sphere,
   scene: THREE.Scene,
   camera: THREE.PerspectiveCamera,
@@ -35,7 +36,7 @@ export function animate(
   controls: OrbitControls
 ) {
   requestAnimationFrame(() =>
-    animate(sphere, scene, camera, renderer, controls)
+    animateSphere(sphere, scene, camera, renderer, controls)
   );
 
   // Actualizar nodo resaltado
@@ -53,7 +54,17 @@ export function animate(
 
   // Actualizar etiquetas
   sphere.nodes.forEach((node) => node.updateLabelPosition(camera));
-
   controls.update();
   renderer.render(scene, camera);
+}
+
+export function disposeLine(scene: THREE.Scene, line: THREE.Line) {
+  scene.remove(line);
+  line.geometry.dispose();
+
+  if (Array.isArray(line.material)) {
+    line.material.forEach((material) => material.dispose());
+  } else {
+    line.material.dispose();
+  }
 }

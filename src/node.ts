@@ -45,10 +45,10 @@ export class Node {
       opacity: 0,
       depthTest: false,
     });
-
-    // Crear el punto 3D para el nodo
+    // Crear la geometria del punto 3D para el nodo
     const geometry = new THREE.BufferGeometry();
     const vertices = new Float32Array([0, 0, 0]);
+
     geometry.setAttribute("position", new THREE.BufferAttribute(vertices, 3));
 
     const material = new THREE.PointsMaterial({
@@ -59,10 +59,12 @@ export class Node {
       sizeAttenuation: true,
     });
 
+    // Crear el punto 3D para el nodo
     this.point = new THREE.Points(geometry, material);
     this.point.position.set(this.position.x, this.position.y, this.position.z);
     scene.add(this.point);
 
+    // Crear el sprite para la etiqueta
     this.label = new THREE.Sprite(spriteMaterial);
     this.label.position.set(this.position.x, this.position.y, this.position.z);
     this.label.scale.set(0.3, 0.15, 1);
@@ -90,8 +92,10 @@ export class Node {
   set active(value: boolean) {
     if (this._active !== value) {
       this._active = value;
+
       if (this.point) {
         const material = this.point.material as THREE.PointsMaterial;
+
         material.color.set(value ? 0xff0000 : 0x00a8ff);
       }
     }
@@ -129,15 +133,11 @@ export class Node {
     }
 
     // Actualizar posición del punto 3D
-    if (this.point) {
-      this.point.position.copy(this.position as THREE.Vector3);
-    }
+    if (this.point) this.point.position.copy(this.position as THREE.Vector3);
   }
 
   addNeighbor(node: Node) {
-    if (!this.neighbors.includes(node)) {
-      this.neighbors.push(node);
-    }
+    if (!this.neighbors.includes(node)) this.neighbors.push(node);
   }
 
   removeNeighbor(node: Node) {

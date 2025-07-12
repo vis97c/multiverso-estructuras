@@ -2,7 +2,7 @@ import "../css/style.css";
 import { Sphere } from "./sphere";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { animate, onWindowResize } from "./utils/render";
+import { animateSphere, onWindowResize } from "./utils/render";
 
 // Iniciar la aplicación cuando el documento esté listo
 document.addEventListener("DOMContentLoaded", () => {
@@ -192,5 +192,5 @@ document.addEventListener("DOMContentLoaded", () => {
   window.addEventListener("resize", () => onWindowResize(camera, renderer));
 
   // Iniciar animación
-  animate(sphere, scene, camera, renderer, controls);
+  animateSphere(sphere, scene, camera, renderer, controls);
 });
