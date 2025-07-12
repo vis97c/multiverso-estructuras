@@ -286,9 +286,11 @@ export class Sphere {
         lineMaterial.uniforms.color.value.set(0x808080);
       });
       this.tripLines = [];
+
+      return node;
     }
 
-    return node;
+    return null;
   }
 
   public addNodes(count: number = 1) {

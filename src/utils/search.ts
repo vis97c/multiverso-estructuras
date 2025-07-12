@@ -14,6 +14,7 @@ interface Path {
 export function makePathSearch(search: number, lastTrip: Node[]) {
   /** Valores de los nodos a evitar */
   const avoidValues = lastTrip.map(({ value }) => value);
+  const MAX_ITERATIONS = 1000; // Prevenir bucles infinitos
 
   /**
    * Función heurística que estima la distancia entre dos nodos basada en sus valores
@@ -23,62 +24,67 @@ export function makePathSearch(search: number, lastTrip: Node[]) {
   }
 
   /**
-   * Busca el camino mas corto entre dos nodos usando un enfoque tipo A*
+   * Busca el camino mas corto entre dos nodos usando un enfoque tipo A* iterativo
    *
    * @complexity
    * - Tiempo: O(V + E) donde V es el número de nodos y E el número de aristas
    * - Espacio: O(V) en el peor caso. Guarda todos los nodos en la ruta.
    *
-   * @param path Ruta inicial
-   * @param paths Array de rutas a explorar
+   * @param initialPath Ruta inicial
    * @returns El camino mas corto encontrado
    */
-  return function searchPath(
-    path: Path,
-    paths: Path[] = [{ ...path, score: 0 }]
-  ): Path {
-    const candidate = path.trip[path.trip.length - 1];
-    const neighbors = candidate.neighbors.filter(
-      ({ value }) => !avoidValues.includes(value)
-    );
-    // Comprobar si hemos llegado al nodo objetivo
-    const node = neighbors.find(({ value }) => value === search);
+  return function searchPath(initialPath: Path): Path {
+    const paths: Path[] = [{ ...initialPath, score: 0 }];
+    let iterations = 0;
 
-    if (node) {
-      path.found = true;
-      path.trip.push(node);
-      return path;
-    }
+    while (paths.length > 0 && iterations < MAX_ITERATIONS) {
+      iterations++;
 
-    // Para cada vecino, crear un nuevo camino y continuar la búsqueda
-    for (const neighbor of neighbors) {
-      // Si el vecino ya está en el camino actual, lo saltamos para evitar ciclos
-      if (path.trip.some((node) => node.value === neighbor.value)) continue;
-
-      // Creamos una nueva ruta que incluye al vecino
-      const newPath = {
-        trip: [...path.trip, neighbor],
-        found: false,
-        // El puntaje es la longitud del camino más la heurística
-        score: path.trip.length + heuristic(neighbor.value, search),
-      };
-
-      // Insertamos la nueva ruta manteniendo el array ordenado por score
-      const insertIndex = paths.findIndex(
-        (p) => (p.score ?? 0) > newPath.score
+      // Tomar el mejor camino actual (menor score)
+      const path = paths.shift()!;
+      const candidate = path.trip[path.trip.length - 1];
+      // Obtener vecinos válidos
+      const neighbors = candidate.neighbors.filter(
+        ({ value }) => !avoidValues.includes(value)
       );
+      // Verificar si encontramos el nodo objetivo
+      const node = neighbors.find(({ value }) => value === search);
 
-      // Esto reemplaza la necesidad de ordenar el array
-      if (insertIndex === -1) paths.push(newPath);
-      else paths.splice(insertIndex, 0, newPath);
+      if (node) {
+        return {
+          trip: [...path.trip, node],
+          found: true,
+          score: path.trip.length,
+        };
+      }
+
+      // Explorar vecinos
+      for (const neighbor of neighbors) {
+        // Evitar ciclos
+        if (path.trip.some(({ value }) => value === neighbor.value)) continue;
+
+        // Crear nueva ruta
+        const newPath = {
+          trip: [...path.trip, neighbor],
+          found: false,
+          score: path.trip.length + heuristic(neighbor.value, search),
+        };
+
+        // Insertar manteniendo el orden por score
+        const insertIndex = paths.findIndex((p) => p.score! > newPath.score!);
+
+        // Con esto evitamos usar sort
+        if (insertIndex === -1) paths.push(newPath);
+        else paths.splice(insertIndex, 0, newPath);
+      }
+
+      // Limitar el número de rutas en memoria para evitar uso excesivo
+      if (paths.length > MAX_ITERATIONS) paths.length = MAX_ITERATIONS;
     }
 
-    // Si no hay más rutas por explorar, retornamos la ruta actual
-    if (paths.length === 0) return path;
+    console.warn("No se encontró el nodo o se itero demasiado");
 
-    // Tomamos la ruta con mejor puntaje (menor score)
-    const nextPath = paths.shift();
-
-    return nextPath ? searchPath(nextPath, paths) : path;
+    // Si llegamos aquí, no se encontró el nodo o se alcanzó el límite de iteraciones
+    return { trip: initialPath.trip, found: false };
   };
 }
