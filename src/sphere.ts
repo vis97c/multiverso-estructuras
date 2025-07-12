@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import { Node } from "./node";
 import { calculateDistance, disposeLine } from "./utils/render";
+import { makePathSearch } from "./utils/search";
 
 export class Sphere {
   private points!: THREE.Points;
@@ -38,12 +39,6 @@ export class Sphere {
     this.clearNodes();
     this.distributeNodesOnSphere();
     this.connectNearestNeighbors();
-
-    console.log(
-      "Vecinos del ultimo nodo:",
-      this.nodes[this.nodes.length - 1].neighbors.map((node) => node.value)
-    );
-
     this.updatePointsGeometry();
   }
 
@@ -235,13 +230,11 @@ export class Sphere {
    * 3. Si no pertenece a un vecino buscar el vecino mas viable y viajar
    *
    * @param search Valor del nodo vecino a buscar
-   * @param trip Array de nodos visitados en el viaje actual
    * @returns El nodo vecino encontrado, null si no se encuentra
    */
-  public async searchNode(
-    search: number,
-    trip: Node[] = []
-  ): Promise<Node | null> {
+  public async searchNode(search: number): Promise<Node | null> {
+    const trip: Node[] = [this.activeNode];
+
     // No buscar si el valor esta fuera del rango
     if (search > this.nodes.length || search < 1) return null;
     // Si el valor es el mismo que el nodo activo, no hacer nada
@@ -250,70 +243,35 @@ export class Sphere {
     // Si el valor ya se ha visitado, no hacer nada
     if (this.lastTrip.some(({ value }) => value === search)) return null;
 
-    /** Obtener los valores del ultimo viaje */
-    const fullTrip = [...this.lastTrip, ...trip];
-    const lastTripValues = fullTrip.map(({ value }) => value);
-    /** Vecinos disponibles para viajar */
-    const availableNeighbors = this.activeNode.neighbors.filter(({ value }) => {
-      return !lastTripValues.includes(value);
-    });
-
-    // No hay vecinos disponibles, imposible viajar
-    if (availableNeighbors.length === 0) return null;
-
-    let node: Node | null = null;
-
-    // Buscar entre los vecinos
-    node = availableNeighbors.find(({ value }) => value === search) || null;
-
-    if (node) {
-      // El valor pertenece a un vecino disponible, viajar
-      trip.push(this.activeNode);
-      await this.drawLine(this.activeNode, node, "trip");
-      this.activeNode = node;
-    } else {
-      // El valor no pertenece a un vecino disponible, viajar al vecino mas probable
-      node = availableNeighbors[0];
-
-      if (this.activeNode.value > search) {
-        // Buscar nodos menores disponibles
-
-        for (let index = 1; index < availableNeighbors.length; index++) {
-          const candidate = availableNeighbors[index];
-
-          if (candidate.value < node.value && candidate.value > search) {
-            node = candidate;
-          }
-        }
-      } else {
-        // Buscar nodos mayores disponibles
-
-        for (let index = 1; index < availableNeighbors.length; index++) {
-          const candidate = availableNeighbors[index];
-
-          if (candidate.value > node.value && candidate.value < search) {
-            node = candidate;
-          }
-        }
-      }
-
-      // Viajar al vecino mas cercano
-      trip.push(this.activeNode);
-      await this.drawLine(this.activeNode, node, "trip");
-      this.activeNode = node;
-
-      node = await this.searchNode(search, trip);
-    }
+    const searchPath = makePathSearch(search, this.lastTrip);
+    // Buscar entre los vecinos el camino mas corto
+    const path = searchPath({ trip: [this.activeNode], found: false });
+    const node: Node = path.trip[path.trip.length - 1];
 
     // Si se encuentra el nodo, guardar el viaje
     if (node?.value === search && trip !== this.lastTrip) {
+      console.log(`Desviación del viaje: ${path.score ?? 0}`);
+
+      // Viajar por el camino encontrado
+      for (let index = 1; index < path.trip.length; index++) {
+        const step = path.trip[index];
+
+        trip.push(step);
+        await this.drawLine(this.activeNode, step, "trip");
+        this.activeNode = step;
+
+        const neighbors = step.neighbors.map(({ value }) => value);
+
+        console.log(
+          `Vecinos del nodo ${step.value}: (${neighbors.join(", ")})`
+        );
+      }
+
       this.lastTrip = trip;
 
-      console.log(
-        "Viaje:",
-        trip.map(({ value }) => value)
-      );
+      const tripValues = trip.map(({ value }) => value);
 
+      console.log("Viaje:", tripValues);
       // Limpiar todas las lineas anteriores
       this.lines.forEach((line) => disposeLine(this.scene, line));
       this.lines = [];

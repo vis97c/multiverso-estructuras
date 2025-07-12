@@ -44,12 +44,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // Crear esfera con 36 nodos inicialmente
   const sphere = new Sphere(scene, camera);
+  const firstNode = sphere.nodes[0];
+  const lastNode = sphere.nodes[sphere.nodes.length - 1];
+  const firstNeighborValues = firstNode.neighbors.map((node) => node.value);
+  const lastNeighborValues = lastNode.neighbors.map((node) => node.value);
 
-  console.log(
-    "Primer nodo y sus vecinos:",
-    sphere.nodes[0].value,
-    sphere.nodes[0].neighbors.map((node) => node.value)
-  );
+  console.log(`Vecinos del primer nodo: (${firstNeighborValues.join(", ")})`);
+  console.log(`Vecinos del ultimo nodo: (${lastNeighborValues.join(", ")})`);
 
   // Configurar botones
   const toggleAxesBtn = document.getElementById("toggleAxes");
@@ -179,9 +180,14 @@ document.addEventListener("DOMContentLoaded", () => {
       } else if (sphere.activeNode.value === value) {
         alert("Ya estas en el nodo, busca otro");
       } else {
-        const node = await sphere.searchNode(value);
+        try {
+          const node = await sphere.searchNode(value);
 
-        if (!node) alert("No puedes viajar a este nodo");
+          if (!node) alert("No puedes viajar a este nodo");
+        } catch (error) {
+          console.error(error);
+          alert("Error al buscar el nodo");
+        }
       }
 
       blockInteractions = false;

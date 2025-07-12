@@ -12,7 +12,12 @@ interface NodePosition {
  * Cada nodo tiene un valor numerico unico que se usara para identificarlo y moverse a traves de los nodos la red
  */
 export class Node {
-  /** Vecinos del nodo */
+  /**
+   * Vecinos del nodo
+   * Almacena referencias a los nodos vecinos
+   *
+   * @max 6
+   */
   neighbors: Node[];
   /** Valor del nodo */
   value: number;
